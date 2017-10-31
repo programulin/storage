@@ -88,45 +88,45 @@ use Programulin\Storage\StorageManagerStatic;
 
 $func_make = function($path, $end_path, $width, $height)
 {
-	$img = \Intervention\Image\ImageManagerStatic::make($path);
+    $img = \Intervention\Image\ImageManagerStatic::make($path);
+
+    if($img->width() > $img->height())
+        $img->widen($width);
+    else
+        $img->heighten($height);
 	
-	if($img->width() > $img->height())
-		$img->widen($width);
-	else
-		$img->heighten($height);
-	
-	$img->resizeCanvas($width, $height)->save($end_path);
+    $img->resizeCanvas($width, $height)->save($end_path);
 };
 
 $func_response = function($path)
 {
-	echo \Intervention\Image\ImageManagerStatic::make($path)->response();
+    echo \Intervention\Image\ImageManagerStatic::make($path)->response();
 };
 
 $config = [
-	[
-		'name'         => 'product_image',
-		'path'         => __DIR__ . '\private\product_images',
-		'level'        => 0,
-		'url'          => '/private/product_images/',
-		'response'     => $func_response,
-		'cache_path'   => __DIR__ . '\public\product_images',
-		'cache_url'    => '/public/product_images/',
-		'cache_level'  => 2,
-		'cache_sizes'  => [
-			'large'    => [800, 800],
-			'medium'   => [400, 400],
-			'small'    => [100, 100]
-		],
-		'cache_ext'    => 'jpg',
-		'cache_resize' => $func_make
-	],
-	[
-		'name' => 'product_document',
-		'path' => __DIR__ . '\public\product_documents',
-		'level' => 1,
-		'url'  => '/public/product_documents/',
-	]
+    [
+        'name'         => 'product_image',
+        'path'         => __DIR__ . '\private\product_images',
+        'level'        => 0,
+        'url'          => '/private/product_images/',
+        'response'     => $func_response,
+        'cache_path'   => __DIR__ . '\public\product_images',
+        'cache_url'    => '/public/product_images/',
+        'cache_level'  => 2,
+        'cache_sizes'  => [
+            'large'    => [800, 800],
+            'medium'   => [400, 400],
+            'small'    => [100, 100]
+        ],
+        'cache_ext'    => 'jpg',
+        'cache_resize' => $func_make
+    ],
+    [
+        'name' => 'product_document',
+        'path' => __DIR__ . '\public\product_documents',
+        'level' => 1,
+        'url'  => '/public/product_documents/',
+    ]
 ];
 ```
 

@@ -1,0 +1,9 @@
+{
+    "name":"programulin/storage",
+    "version":"0.1",
+    "autoload": {
+        "psr-4": {
+            "Programulin\\Storage\\": "src/"
+        }
+    }
+}

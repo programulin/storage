@@ -99,9 +99,9 @@ class File
 		$url = $ds;
 		
 		if($level === 1)
-			$url .= $first_dir . $ds;
+			$url .= (ceil($this->id / 1000) * 1000) . $ds;
 		elseif($level === 2)
-			$url .= $first_dir . $ds . $second_dir . $ds;
+			$url .= (ceil($this->id / 100000) * 100000) . $ds . (ceil($this->id / 100) * 100) . $ds;
 		
 		return $url;
 	}

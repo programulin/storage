@@ -1,108 +1,151 @@
 <?php
 namespace Programulin\Storage;
 
+use Intervention\Image\ImageManagerStatic;
+
 class File
 {
-	private $config;
+	private $storage;
 	private $id;
 	private $ext;
 
-	public function __construct(Config $config, $id, $ext = '')
+	public function __construct(Storage $storage, $id, $ext = null)
 	{
-		$this->config = $config;
+		$this->storage = $storage;
 		$this->id = $id;
 		$this->ext = $ext;
 	}
-	
-	public function getPath()
+
+	public function path()
 	{
-		return $this->config->path . $this->getLevelFolders() . $this->getName();
+		return $this->storage->path . $this->getLevelFolders() . $this->getName();
 	}
 	
-	public function getUrl()
+	public function has()
 	{
-		return $this->config->url . $this->getLevelFolders(false, '/') . $this->getName();
+		return file_exists($this->path());
+	}
+	
+	public function url()
+	{
+		return $this->storage->url . $this->getLevelFolders(false, '/') . $this->getName();
 	}
 
-	public function getCachePath($size)
-	{
-		$sizes = $this->config->cache_sizes[$size];
-		
-		return $this->config->cache_path . $this->getLevelFolders(true) . "{$this->id}_{$sizes[0]}x{$sizes[1]}.{$this->config->cache_ext}";  
+	public function cachePath($size)
+	{	
+		return $this->storage->cache_path . $this->getLevelFolders(true) . "{$this->id}-{$size}.{$this->storage->cache_ext}";  
 	}
 
-	public function getCacheUrl($size)
+	public function hasCache($size)
 	{
-		$sizes = $this->config->cache_sizes[$size];
-		
-		return $this->config->cache_url . $this->getLevelFolders(true, '/') . "{$this->id}_{$sizes[0]}x{$sizes[1]}.{$this->config->cache_ext}"; 
+		return file_exists($this->cachePath($size));
+	}
+	
+	public function cacheUrl($size)
+	{
+		return $this->storage->cache_url . $this->getLevelFolders(true, '/') . "{$this->id}-{$size}.{$this->storage->cache_ext}"; 
 	}
 
-	public function makeCache($size)
+	public function cache($size)
 	{
-		$sizes = $this->config->cache_sizes[$size];
+		$sizes = $this->storage->cache_sizes[$size];
 
-		$dir = $this->config->cache_path . $this->getLevelFolders(true);
+		$dir = $this->storage->cache_path . $this->getLevelFolders(true);
 
 		if(!file_exists($dir))
-			mkdir($dir, 0777, true);
+			mkdir($dir, $this->storage->mode, true);
 
-		$callback = $this->config->cache_resize;
-		$callback($this->getPath(), $this->getCachePath($size), $sizes[0], $sizes[1]);
+		$img = ImageManagerStatic::make($this->path());
+
+		if($sizes[0] === 'auto' and $sizes[1] === 'auto'){}
+		
+		elseif($sizes[0] === 'auto')
+			$img->heighten($sizes[1]);
+		
+		elseif($sizes[1] === 'auto')
+			$img->widen($sizes[0]);
+
+		else
+		{
+			if($img->width() > $img->height())
+				$img->widen($sizes[0]);
+			else
+				$img->heighten($sizes[1]);
+			
+			$img->resizeCanvas($sizes[0], $sizes[1], 'center', false, 'ffffff');
+		}
+
+		$img->save($this->cachePath($size));
 	}
 
-	public function saveFile($path)
+	public function load($path)
 	{
-		$dir = $this->config->path . $this->getLevelFolders();
+		$dir = $this->storage->path . $this->getLevelFolders();
 
 		if(!file_exists($dir))
-			mkdir($dir, 0777, true);
+			mkdir($dir, $this->storage->mode, true);
 		
-		copy($path, $this->getPath());
+		copy($path, $this->path());
 	}
 	
-	public function deleteFile()
+	public function delete()
 	{
-		$path = $this->getPath();
+		$path = $this->path();
 		
 		if(file_exists($path))
 			unlink($path);
+		
+		$sizes = $this->storage->cache_sizes;
+		
+		foreach($sizes as $name => $size)
+		{
+			$path = $this->cachePath($name);
+			
+			if(file_exists($path))
+				unlink($path);
+		}
 	}
 	
-	public function response()
+	public function response($ext = null, $quality = 90)
 	{
-		$func = $this->config->response;
-		$func($this->getPath());
+		if(!$ext)
+			$ext = $this->storage->cache_ext;
+		
+		echo ImageManagerStatic::make($this->path())->response($ext, $quality);
 	}
-	
-	public function responseCache($size)
+
+	public function responseCache($size, $ext = null, $quality = 90)
 	{
-		$path = $this->getCachePath($size);
+		if(!$ext)
+			$ext = $this->storage->cache_ext;
+		
+		$path = $this->cachePath($size);
 		
 		if(!file_exists($path))
-			$this->makeCache($size);
+			$this->cache($size);
 		
-		$func = $this->config->response;
-		$func($this->getCachePath($size));
+		echo ImageManagerStatic::make($path)->response($ext, $quality);
 	}
 	
-	private function getLevelFolders($cache = false, $ds = null)
+	private function getLevelFolders($is_cache = false, $ds = null)
 	{
 		if(!$ds)
 			$ds = DIRECTORY_SEPARATOR;
 		
-		$level = $cache ? $this->config->cache_level : $this->config->level;
+		$level = $is_cache ? $this->storage->cache_level : $this->storage->level;
 		
-		$first_dir = ceil($this->id / 10000) * 10000;
-		$second_dir = ceil($this->id / 100) * 100;
-
+		$dir1 = ceil($this->id / 100) * 100;
+		$dir2 = ceil($this->id / 10000) * 10000;
+		$dir3 = ceil($this->id / 1000000) * 1000000;
+		
 		$url = $ds;
 		
 		if($level === 1)
-			$url .= (ceil($this->id / 1000) * 1000) . $ds;
+			$url .= $dir1 . $ds;
 		elseif($level === 2)
-			$url .= (ceil($this->id / 100000) * 100000) . $ds . (ceil($this->id / 100) * 100) . $ds;
-		
+			$url .= $dir2 . $ds . $dir1 . $ds;
+		else
+			$url .= $dir3 . $ds . $dir2 . $ds . $dir1 . $ds;
 		return $url;
 	}
 	

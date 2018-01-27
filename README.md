@@ -1,160 +1,80 @@
-Библиотека для хранения файлов.
+Библиотека для удобного управления файлами.
 =====================
 
-Библиотека позволяет относительно удобно работать с файлами, раскиданными по разным папкам, а также управлять кешированными копиями изображений.
-Библиотека в разработке, используйте на свой страх и риск.
+Библиотека позволяет удобно работать с хранилищами файлов и генерировать кешированные копии изображений.
 
-Начало работы
+Установка
 -----------------------------------
 
-1. Устанавливаем c помощью Composer:
-```json
-{
-    "require":{
-        "programulin/storage": "dev-master"
-    },
-    "repositories":[
-        {
-            "type":"github",
-            "url":"https://github.com/programulin/storage"
-        }
-    ]
-}
+Устанавливаем c помощью Composer:
+
+```php
+composer require programulin/storage
 ```
 
-2. Настраиваем все хранилища.
+Как работать
+-----------------------------------
 
-- name - название хранилища,
-- path - абсолютный путь к нему,
-- level - уровень вложенности папок, от 0 до 2,
-- url - абсолютный путь относительно корня сайта. 
+Сначала настраиваем все хранилища.
+
 
 ```php
 use Programulin\Storage\StorageManagerStatic;
 
-$config = [
-    [
-        'name' => 'product_images',
-        'path' => __DIR__ . '\public\images',
-        'level' => 0,
-        'url'  => '/public/images'
-    ],
-    [
-        'name' => 'product_documents',
-        'path' => __DIR__ . '\public\documents',
-        'level' => 0,
-        'url'  => '/public/documents'
-    ],
-];
+// Создаём простое хранилище:
+StorageManagerStatic::make('product_files') // Название хранилища
+        ->path(__DIR__ . '\data\product_files') // Путь к хранилищу
+        ->level(1) // Сколько уровней подпапок создавать (от 0 до 3)
+        ->url('/data/product_files/'); // URL хранилища относительно корня сайта
 
-StorageManagerStatic::config($config);
+// Создаём простое хранилище + хранилище кешированных копий:
+StorageManagerStatic::make('product_images')
+        ->path(__DIR__ . '\data\product_images')
+        ->level(1)
+        ->url('/data/product_images/')
+
+        ->cachePath(__DIR__ . '\data\cache\product_images') // Путь к хранилищу кеша
+        ->cacheLevel(2) // Сколько уровней подпапок создавать (от 0 до 3)
+        ->cacheUrl('/data/cache/product_images/') // URL хранилища кэша относительно корня сайта
+        ->cacheSizes([ // Размеры кешированных копий изображений. Указываем название кеша, ширину и высоту
+            's' => [200, 200], // Если изображение изначально не квадратное, с меньших сторон появятся белые полосы
+            'w' => [400, 'auto'], // Ширина 400, высота вычислится автоматически
+            'h' => ['auto', 400], // Высота 400, ширина вычислится автоматически
+            'o' => ['auto', 'auto'], // Изображение будет оригинальных размеров
+        ])
+        ->cacheExt('jpg'); // Расширение всех кешированных копий
 ```
 
-Или вариант без статики:
-
+Если не нравится статика:
 ```php
 use Programulin\Storage\StorageManager;
 
-$config = [
-    [
-        'name' => 'product_images',
-        'path' => __DIR__ . '\public\images',
-        'level' => 0,
-        'url'  => '/public/images'
-    ],
-    [
-        'name' => 'product_documents',
-        'path' => __DIR__ . '\public\documents',
-        'level' => 0,
-        'url'  => '/public/documents'
-    ],
-];
+$m = new StorageManager();
+$m->make('product_files');
+... // И далее как в примере выше
 ```
 
-Если хотите кеш, для вас приготовлен маленький ад:
+Теперь можно работать с файлами.
 
-- response - колбек для вывода изображения на экран,
-- cache_path - абсолютный путь к папке с кешированными копиями изображений,
-- cache_url - путь к той же папке относительно корня сайта,
-- cache_level - уровень вложенности папок, от 0 до 2,
-- cache_sizes - допустимые размеры кеша и наименования этих размеров,
-- cache_ext - расширение кешированных копий,
-- cache_resize - колбек ресайза.
+// Получаем объект файла по его id и расширению:
+$file = StorageManagerStatic::storage('product_images')->file(1058, 'jpg');
 
-Ниже полный пример конфигурации. Для response и cache_resize используется библиотека intervention/image.
+// Получаем информацию о файле:
+echo $file->path(); // Абсолютный путь к файлу
+echo $file->url(); // URL файла от корня сайта
+echo $file->cachePath('s'); // Абсолютный путь к кешу
+echo $file->cacheUrl('s'); // URL кеша от корня сайта
 
-```php
-use Programulin\Storage\StorageManagerStatic;
+echo $file->has(); // Проверка существования файла
+echo $file->hasCache('s'); // Проверка существования кеша
 
-$func_make = function($path, $end_path, $width, $height)
-{
-    $img = \Intervention\Image\ImageManagerStatic::make($path);
+$file->cache('s'); // Создание кеша
 
-    if($img->width() > $img->height())
-        $img->widen($width);
-    else
-        $img->heighten($height);
-	
-    $img->resizeCanvas($width, $height)->save($end_path);
-};
+$file->load('some/path/to/file.jpg'); // Загружаем новый файл
+$file->delete(); // Удаляем файл и кеш
 
-$func_response = function($path)
-{
-    echo \Intervention\Image\ImageManagerStatic::make($path)->response();
-};
-
-$config = [
-    [
-        'name'         => 'product_image',
-        'path'         => __DIR__ . '\private\product_images',
-        'level'        => 0,
-        'url'          => '/private/product_images/',
-        'response'     => $func_response,
-        'cache_path'   => __DIR__ . '\public\product_images',
-        'cache_url'    => '/public/product_images/',
-        'cache_level'  => 2,
-        'cache_sizes'  => [
-            'large'    => [800, 800],
-            'medium'   => [400, 400],
-            'small'    => [100, 100]
-        ],
-        'cache_ext'    => 'jpg',
-        'cache_resize' => $func_make
-    ],
-    [
-        'name' => 'product_document',
-        'path' => __DIR__ . '\public\product_documents',
-        'level' => 1,
-        'url'  => '/public/product_documents/',
-    ]
-];
-```
-
-Работа с файлами
------------------------------------
-
-```php
-// Получение объекта файла. Передаём название хранилища, id, расширение.
-$file = StorageManagerStatic::make('product_image', 1, 'png');
-
-// Получаем различные пути
-echo $file->getUrl() . '<br>';
-echo $file->getPath() . '<br>';
-echo $file->getCacheUrl('large') . '<br>';
-echo $file->getCachePath('medium') . '<br>';
-
-// Загружаем новый файл
-$file->saveFile(__DIR__ . '/img.jpg');
-
-// Создаём кеш
-$file->makeCache('medium');
-
-// Выводим исходный файл на экран
+// Быстрый вывод файла на экран
 $file->response();
-
-// Создаём кеш и выводим его на экран
-$file->responseCache('large');
-
-// Удаляем исходный файл
-$file->deleteFile();
-```
+$file->response('png', 20); // Можно указать расширение (null если не хотите менять) и качество
+$file->responseCache('s'); // Аналогично для кеша
+$file->responseCache('s', 'jpg', 80);

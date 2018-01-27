@@ -1,24 +1,19 @@
 <?php
 namespace Programulin\Storage;
 
+use Programulin\Exceptions\WrongStorage;
+
 class StorageManager
 {
-	private $configs;
+	private $storages;
 	
-	public function config(array $configs)
+	public function storage($name)
 	{
-		foreach($configs as $config)
-		{
-			$object = new Config($config);
-			$this->configs[$object->name] = $object;
-		}
+		return $this->storages[$name];
 	}
-	
-	public function make($storage, $name, $ext)
-	{
-		if(!isset($this->configs[$storage]))
-			throw new WrongStorage("Не найдены настройки хранилища $storage.");
-		
-		return new File($this->configs[$storage], $name, $ext);
+
+	public function make($name)
+	{	
+		return $this->storages[$name] = new Storage;
 	}
 }

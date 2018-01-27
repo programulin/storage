@@ -5,21 +5,21 @@ class StorageManagerStatic
 {
 	private static $manager;
 
-	private static function manager()
+	private static function instance()
 	{
 		if(!self::$manager)
 			self::$manager = new StorageManager();
 		
 		return self::$manager;
 	}
-	
-	public static function config(array $config)
+
+	public static function storage($name)
 	{
-		self::manager()->config($config);
+		return self::instance()->storage($name);
 	}
 	
-	public static function make($storage, $name, $ext)
+	public static function make($name)
 	{
-		return self::manager()->make($storage, $name, $ext);
+		return self::instance()->make($name);
 	}
 }

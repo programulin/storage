@@ -54,8 +54,9 @@ $m->make('product_files');
 ... // И далее как в примере выше
 ```
 
-Теперь можно работать с файлами.
+Теперь можно работать с файлами:
 
+```
 // Получаем объект файла по его id и расширению:
 $file = StorageManagerStatic::storage('product_images')->file(1058, 'jpg');
 
@@ -78,3 +79,4 @@ $file->response();
 $file->response('png', 20); // Можно указать расширение (null если не хотите менять) и качество
 $file->responseCache('s'); // Аналогично для кеша
 $file->responseCache('s', 'jpg', 80);
+```

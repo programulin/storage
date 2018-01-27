@@ -1,7 +1,6 @@
 {
     "name":"programulin/storage",
     "type": "library",
-	"version":"2.0",
     "autoload": {
         "psr-4": {
             "Programulin\\Storage\\": "src/"

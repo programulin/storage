@@ -15,8 +15,7 @@ composer require programulin/storage:dev-master
 Как работать
 -----------------------------------
 
-Сначала настраиваем все хранилища.
-
+Сначала настраиваем все хранилища:
 
 ```php
 use Programulin\Storage\StorageManagerStatic;

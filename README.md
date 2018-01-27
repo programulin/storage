@@ -9,7 +9,7 @@
 Устанавливаем c помощью Composer:
 
 ```php
-composer require programulin/storage
+composer require programulin/storage:dev-master
 ```
 
 Как работать

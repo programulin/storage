@@ -139,13 +139,14 @@ class File
 		$dir3 = ceil($this->id / 1000000) * 1000000;
 		
 		$url = $ds;
-		
+
 		if($level === 1)
 			$url .= $dir1 . $ds;
 		elseif($level === 2)
 			$url .= $dir2 . $ds . $dir1 . $ds;
-		else
+		elseif($level === 3)
 			$url .= $dir3 . $ds . $dir2 . $ds . $dir1 . $ds;
+		
 		return $url;
 	}
 	
